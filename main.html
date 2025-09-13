@@ -1,0 +1,648 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Emoji Panel — Pastel & Animations</title>
+<style>
+  :root{
+    --bg1:#fff0f6; --bg2:#f0f8ff; --bg3:#f0fff4;
+    --card:#ffffff; --muted:#666; --accent:#8ecae6; --accent2:#ffd6e0;
+    --radius:14px;
+  }
+  *{box-sizing:border-box}
+  body{
+    margin:0;font-family:Inter,system-ui,-apple-system,'Segoe UI',Roboto,Arial;
+    background: radial-gradient(circle at 10% 10%, #fff7fb 0%, transparent 20%),
+                radial-gradient(circle at 90% 90%, #f7fff7 0%, transparent 18%),
+                linear-gradient(135deg, var(--bg1), var(--bg2) 40%, var(--bg3));
+    color:#111; -webkit-font-smoothing:antialiased;
+  }
+
+  .wrap{max-width:1200px;margin:28px auto;padding:20px;display:grid;grid-template-columns:260px 1fr;gap:20px}
+  @media(max-width:900px){.wrap{grid-template-columns:1fr}}
+
+  /* sidebar */
+  .sidebar{
+    background:linear-gradient(180deg, rgba(255,255,255,0.85), rgba(255,255,255,0.7));
+    border-radius:var(--radius); padding:18px; box-shadow:0 12px 30px rgba(17,24,39,0.06);
+    height:fit-content;
+  }
+  .brand{display:flex;gap:12px;align-items:center}
+  .logo{width:48px;height:48px;border-radius:12px;background:linear-gradient(135deg,var(--accent),var(--accent2));display:flex;align-items:center;justify-content:center;font-size:24px;color:white}
+  h1{font-size:16px;margin:0}
+  .muted{color:var(--muted);font-size:13px;margin-top:6px}
+
+  .menu{margin-top:14px;display:flex;flex-direction:column;gap:8px}
+  .menu button{display:flex;gap:8px;align-items:center;border:0;background:transparent;padding:8px;border-radius:10px;cursor:pointer;font-weight:700}
+  .menu button:hover{background:rgba(140,202,230,0.06)}
+  .menu button.active{background:linear-gradient(90deg, rgba(140,202,230,0.13), rgba(255,214,224,0.08));box-shadow:0 6px 18px rgba(140,202,230,0.06)}
+
+  /* main */
+  .main{background:var(--card);padding:18px;border-radius:18px;box-shadow:0 20px 40px rgba(17,24,39,0.06)}
+  .controls{display:flex;gap:12px;align-items:center;margin-bottom:12px}
+  .search{
+    flex:1;background:linear-gradient(180deg,#ffffff,#fbfbff);padding:10px;border-radius:12px;display:flex;gap:10px;align-items:center;border:1px solid rgba(17,24,39,0.06)
+  }
+  .search input{border:0;background:transparent;outline:none;font-size:15px;width:100%}
+  .pill{padding:8px 12px;border-radius:999px;background:linear-gradient(90deg,#fff,#fff);border:1px solid rgba(17,24,39,0.04);display:inline-flex;gap:8px;align-items:center;cursor:pointer}
+
+  .title-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+  .title{font-size:14px;font-weight:800}
+  .subtitle{color:var(--muted);font-size:13px}
+
+  /* grid */
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(64px,1fr));gap:10px;max-height:62vh;overflow:auto;padding-right:6px}
+  .card{background:linear-gradient(180deg,rgba(255,255,255,0.98),rgba(255,255,255,0.95));border-radius:12px;padding:10px;display:flex;align-items:center;justify-content:center;font-size:28px;cursor:pointer;position:relative;transition:transform .16s ease,box-shadow .16s ease}
+  .card:hover{transform:translateY(-6px);box-shadow:0 14px 34px rgba(17,24,39,0.08)}
+  .star{position:absolute;right:8px;top:8px;font-size:14px;opacity:0.9;cursor:pointer}
+  .star.active{color:#ff6b8a}
+
+  /* hide emoji names visually but keep in code for search */
+  .visually-hidden{position:absolute!important;height:1px;width:1px;overflow:hidden;clip:rect(1px,1px,1px,1px);white-space:nowrap;border:0;padding:0;margin:-1px}
+
+  /* toast */
+  .toast{position:fixed;right:20px;bottom:20px;padding:10px 14px;background:linear-gradient(90deg,#0f1724,#0b1220);color:white;border-radius:10px;box-shadow:0 8px 30px rgba(10,10,30,0.3);opacity:0;transform:translateY(20px);transition:all .25s ease;z-index:999}
+  .toast.show{opacity:1;transform:none}
+
+  /* scrollbar */
+  .grid::-webkit-scrollbar{width:8px;height:8px}
+  .grid::-webkit-scrollbar-thumb{background:linear-gradient(180deg,rgba(140,202,230,0.3),rgba(255,214,224,0.3));border-radius:8px}
+
+  /* small */
+  @media(max-width:880px){ .wrap{padding:12px;gap:12px} .sidebar{order:2} .main{order:1} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">😊</div>
+      <div>
+        <h1>Emoji Panel</h1>
+        <div class="muted">Panel pastel — clique pour copier • ⭐ favoris</div>
+      </div>
+    </div>
+
+    <div class="menu" id="categoryMenu">
+      <!-- généré par JS -->
+    </div>
+
+    <hr style="border:0;height:1px;background:linear-gradient(90deg,transparent,#eee,transparent);margin:12px 0;border-radius:2px">
+    <div style="font-size:13px;color:var(--muted)">Favoris sauvegardés localement.</div>
+  </aside>
+
+  <main class="main">
+    <div class="controls">
+      <div class="search" role="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 21l-4.35-4.35" stroke="#8b8fa6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path><circle cx="11" cy="11" r="6" stroke="#8b8fa6" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></circle></svg>
+        <input id="searchInput" placeholder="Recherche globale (ex: coeur, triste, chien) — appuie sur / pour focus" aria-label="Rechercher des emojis">
+      </div>
+      <div class="pill" id="favViewBtn">⭐ Favoris</div>
+    </div>
+
+    <div class="title-row">
+      <div>
+        <div class="title" id="categoryTitle">Toutes les familles</div>
+        <div class="subtitle" id="categorySubtitle">Sélectionne une catégorie ou lance une recherche</div>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div style="font-size:13px;color:var(--muted)">Total affiché : <span id="count">0</span></div>
+      </div>
+    </div>
+
+    <div class="grid" id="grid"></div>
+  </main>
+</div>
+
+<div class="toast" id="toast">Copié !</div>
+
+<script>
+/* ===========================
+   Données : 9 familles (~40 emojis chacune)
+   Chaque item = {c:'emoji', name:'nom descriptif', tags:['tag1','tag2']}
+   Les noms sont présents dans le code pour la recherche mais NE SONT PAS affichés.
+   =========================== */
+
+const EMOJI_DATA = {
+  "Favoris": [],
+  "Visages & Sourires": [
+    {c:'😀', name:'visage souriant', tags:['sourire','heureux']},
+    {c:'😃', name:'sourire large', tags:['sourire']},
+    {c:'😄', name:'yeux souriants', tags:['sourire']},
+    {c:'😁', name:'grande joie', tags:['rire']},
+    {c:'😆', name:'rire sincère', tags:['rire']},
+    {c:'😅', name:'sueur de soulagement', tags:['gêne']},
+    {c:'🤣', name:'mort de rire', tags:['lol','rire']},
+    {c:'😂', name:'larmes de joie', tags:['rire']},
+    {c:'🙂', name:'sourire léger', tags:['sourire']},
+    {c:'😉', name:'clin d oeil', tags:['clin','taquin']},
+    {c:'😇', name:'visage ange', tags:['innocent']},
+    {c:'🥰', name:'visage avec coeurs', tags:['amour']},
+    {c:'😍', name:'yeux en coeur', tags:['amour','coeur']},
+    {c:'😘', name:'bisou', tags:['bisou','amour']},
+    {c:'😗', name:'bisou léger', tags:['bisou']},
+    {c:'😚', name:'bisou yeux fermés', tags:['bisou']},
+    {c:'😙', name:'bisou souriant', tags:['bisou']},
+    {c:'😋', name:'gourmand', tags:['nourriture']},
+    {c:'😜', name:'tirer la langue', tags:['taquin']},
+    {c:'😝', name:'yeux fermés langue', tags:['taquin']},
+    {c:'🤪', name:'fou', tags:['fou']},
+    {c:'😛', name:'langue dehors', tags:['taquin']},
+    {c:'🤑', name:'argent yeux', tags:['argent']},
+    {c:'🤗', name:'calin', tags:['calin','amour']},
+    {c:'🤭', name:'main devant bouche', tags:['surpris']},
+    {c:'🤫', name:'chut', tags:['silence']},
+    {c:'🤔', name:'pensif', tags:['penser']},
+    {c:'🤐', name:'bouche scellée', tags:['secret']},
+    {c:'😐', name:'neutre', tags:['neutre']},
+    {c:'😑', name:'expression plate', tags:['neutre']},
+    {c:'😶', name:'muet', tags:['silence']},
+    {c:'😏', name:'sourire en coin', tags:['taquin']},
+    {c:'😒', name:'blasé', tags:['énervé']},
+    {c:'🙄', name:'yeux au ciel', tags:['exaspéré']},
+    {c:'😬', name:'grimace', tags:['gêne']},
+    {c:'😴', name:'endormi', tags:['fatigue']},
+    {c:'🤤', name:'bave', tags:['gourmand']},
+  ],
+
+  "Gestes & Mains": [
+    {c:'👋', name:'salut main', tags:['bonjour','au revoir']},
+    {c:'🤚', name:'main levée', tags:['main']},
+    {c:'🖐️', name:'paume', tags:['main']},
+    {c:'✋', name:'stop', tags:['stop']},
+    {c:'👌', name:'ok', tags:['ok']},
+    {c:'🤏', name:'petit', tags:['petit']},
+    {c:'✌️', name:'paix', tags:['victory']},
+    {c:'🤞', name:'doigts croisés', tags:['chance']},
+    {c:'🤟', name:'je t aime asl', tags:['amour']},
+    {c:'🤘', name:'rock', tags:['rock']},
+    {c:'👍', name:'pouce en l air', tags:['like']},
+    {c:'👎', name:'pouce en bas', tags:['dislike']},
+    {c:'👏', name:'applaudir', tags:['applaudir']},
+    {c:'🙌', name:'mains levées', tags:['joie']},
+    {c:'🙏', name:'prière/merci', tags:['merci']},
+    {c:'💪', name:'muscle', tags:['force']},
+    {c:'🫱', name:'main droite', tags:['main']},
+    {c:'🫲', name:'main gauche', tags:['main']},
+    {c:'🫶', name:'mains coeur', tags:['amour','coeur']},
+    {c:'🖖', name:'salut vulcain', tags:['vulcain']},
+    {c:'🤝', name:'poignée de main', tags:['rencontre']},
+    {c:'✍️', name:'écrire', tags:['écrire']},
+    {c:'🫰', name:'doigt coeur', tags:['amour']},
+    {c:'👍🏼', name:'pouce peau claire', tags:['like']},
+    {c:'👍🏽', name:'pouce peau moyenne', tags:['like']},
+    {c:'👍🏿', name:'pouce peau foncée', tags:['like']},
+    {c:'👊', name:'poing', tags:['poing']},
+    {c:'🤛', name:'poing gauche', tags:['poing']},
+    {c:'🤜', name:'poing droit', tags:['poing']},
+    {c:'👏🏼', name:'applaudir peau claire', tags:['applaudir']},
+    {c:'👏🏿', name:'applaudir peau foncée', tags:['applaudir']},
+    {c:'👐', name:'mains ouvertes', tags:['ouvert']},
+    {c:'🙌🏽', name:'mains levées peau moyenne', tags:['joie']},
+    {c:'🫳', name:'main qui présente', tags:['présenter']},
+    {c:'🫴', name:'main paume vers le haut', tags:['main']},
+    {c:'🫵', name:'index toi', tags:['toi']},
+  ],
+
+  "Amour & Cœurs": [
+    {c:'❤️', name:'coeur rouge', tags:['coeur','amour']},
+    {c:'🧡', name:'coeur orange', tags:['coeur']},
+    {c:'💛', name:'coeur jaune', tags:['coeur']},
+    {c:'💚', name:'coeur vert', tags:['coeur']},
+    {c:'💙', name:'coeur bleu', tags:['coeur']},
+    {c:'💜', name:'coeur violet', tags:['coeur']},
+    {c:'🖤', name:'coeur noir', tags:['coeur']},
+    {c:'🤍', name:'coeur blanc', tags:['coeur']},
+    {c:'🤎', name:'coeur marron', tags:['coeur']},
+    {c:'💖', name:'coeur scintillant', tags:['coeur']},
+    {c:'💘', name:'coeur flêche', tags:['amour']},
+    {c:'💝', name:'coeur cadeau', tags:['amour']},
+    {c:'💞', name:'coeurs tournants', tags:['amour']},
+    {c:'💕', name:'deux coeurs', tags:['coeur','amour']},
+    {c:'💓', name:'coeur battant', tags:['coeur']},
+    {c:'💗', name:'coeur japonais', tags:['coeur']},
+    {c:'❣️', name:'point coeur', tags:['coeur']},
+    {c:'💟', name:'symbole coeur', tags:['coeur']},
+    {c:'💑', name:'couple avec coeur', tags:['couple']},
+    {c:'👩‍❤️‍👨', name:'couple h/f', tags:['couple']},
+    {c:'👩‍❤️‍👩', name:'couple f/f', tags:['couple']},
+    {c:'👨‍❤️‍👨', name:'couple h/h', tags:['couple']},
+    {c:'💏', name:'couple qui s embrasse', tags:['bisou']},
+    {c:'💋', name:'trace de bisou', tags:['bisou']},
+    {c:'🌹', name:'rose', tags:['fleur','amour']},
+    {c:'💐', name:'bouquet', tags:['fleur','amour']},
+    {c:'💌', name:'lettre d amour', tags:['amour']},
+    {c:'🫶', name:'mains coeur', tags:['coeur']},
+    {c:'💑', name:'couple coeur', tags:['couple']},
+    {c:'👩‍❤️‍💋‍👩', name:'couple bisou f/f', tags:['bisou']},
+    {c:'👨‍❤️‍💋‍👨', name:'couple bisou h/h', tags:['bisou']},
+    {c:'🥰', name:'visage amoureux', tags:['amour']},
+    {c:'😘', name:'bisou coeur', tags:['bisou']},
+    {c:'😻', name:'chat amoureux', tags:['chat','amour']},
+    {c:'💞', name:'pulsation coeurs', tags:['coeur']},
+    {c:'❣', name:'coeur exclamation', tags:['coeur']},
+    {c:'💓', name:'coeur amour', tags:['coeur']},
+    {c:'💝', name:'coeur cadeau', tags:['coeur']},
+    {c:'💗', name:'coeur rose', tags:['coeur']},
+  ],
+
+  "Animaux": [
+    {c:'🐶', name:'chien', tags:['chien','animal']},
+    {c:'🐱', name:'chat', tags:['chat','animal']},
+    {c:'🐭', name:'souris', tags:['souris']},
+    {c:'🐹', name:'hamster', tags:['hamster']},
+    {c:'🐰', name:'lapin', tags:['lapin']},
+    {c:'🦊', name:'renard', tags:['renard']},
+    {c:'🐻', name:'ours', tags:['ours']},
+    {c:'🐼', name:'panda', tags:['panda']},
+    {c:'🐨', name:'koala', tags:['koala']},
+    {c:'🐯', name:'tigre', tags:['tigre']},
+    {c:'🦁', name:'lion', tags:['lion']},
+    {c:'🐮', name:'vache', tags:['vache']},
+    {c:'🐷', name:'cochon', tags:['cochon']},
+    {c:'🐸', name:'grenouille', tags:['grenouille']},
+    {c:'🐵', name:'singe', tags:['singe']},
+    {c:'🐔', name:'poule', tags:['poule']},
+    {c:'🐧', name:'pingouin', tags:['oiseau']},
+    {c:'🐦', name:'oiseau', tags:['oiseau']},
+    {c:'🦆', name:'canard', tags:['oiseau']},
+    {c:'🦅', name:'aigle', tags:['oiseau']},
+    {c:'🦉', name:'hibou', tags:['oiseau']},
+    {c:'🦇', name:'chauve-souris', tags:['animal']},
+    {c:'🐺', name:'loup', tags:['loup']},
+    {c:'🐗', name:'sanglier', tags:['cochon']},
+    {c:'🐴', name:'cheval', tags:['cheval']},
+    {c:'🦄', name:'licorne', tags:['magique']},
+    {c:'🐝', name:'abeille', tags:['insecte']},
+    {c:'🐛', name:'chenille', tags:['insecte']},
+    {c:'🦋', name:'papillon', tags:['insecte']},
+    {c:'🐌', name:'escargot', tags:['lent']},
+    {c:'🐞', name:'coccinelle', tags:['insecte']},
+    {c:'🐢', name:'tortue', tags:['reptile']},
+    {c:'🐍', name:'serpent', tags:['reptile']},
+    {c:'🦎', name:'lézard', tags:['reptile']},
+    {c:'🦕', name:'dino sauropode', tags:['dino']},
+    {c:'🦖', name:'dino t-rex', tags:['dino']},
+    {c:'🐬', name:'dauphin', tags:['mer']},
+    {c:'🐳', name:'baleine', tags:['mer']},
+  ],
+
+  "Nourriture & Boissons": [
+    {c:'🍏', name:'pomme verte', tags:['fruit']},
+    {c:'🍎', name:'pomme rouge', tags:['fruit']},
+    {c:'🍐', name:'poire', tags:['fruit']},
+    {c:'🍊', name:'orange', tags:['fruit']},
+    {c:'🍋', name:'citron', tags:['fruit']},
+    {c:'🍌', name:'banane', tags:['fruit']},
+    {c:'🍉', name:'pastèque', tags:['fruit']},
+    {c:'🍇', name:'raisins', tags:['fruit']},
+    {c:'🍓', name:'fraise', tags:['fruit']},
+    {c:'🍈', name:'melon', tags:['fruit']},
+    {c:'🍒', name:'cerise', tags:['fruit']},
+    {c:'🍑', name:'pêche', tags:['fruit']},
+    {c:'🍍', name:'ananas', tags:['fruit']},
+    {c:'🥭', name:'mangue', tags:['fruit']},
+    {c:'🥥', name:'noix de coco', tags:['fruit']},
+    {c:'🥝', name:'kiwi', tags:['fruit']},
+    {c:'🍅', name:'tomate', tags:['legume']},
+    {c:'🍆', name:'aubergine', tags:['legume']},
+    {c:'🥑', name:'avocat', tags:['legume']},
+    {c:'🥦', name:'brocoli', tags:['legume']},
+    {c:'🥕', name:'carotte', tags:['legume']},
+    {c:'🌽', name:'maïs', tags:['legume']},
+    {c:'🍔', name:'burger', tags:['fastfood']},
+    {c:'🍟', name:'frites', tags:['fastfood']},
+    {c:'🍕', name:'pizza', tags:['fastfood']},
+    {c:'🌭', name:'hotdog', tags:['fastfood']},
+    {c:'🌮', name:'taco', tags:['fastfood']},
+    {c:'🌯', name:'burrito', tags:['fastfood']},
+    {c:'🍣', name:'sushi', tags:['japonais']},
+    {c:'🍤', name:'crevette', tags:['mer']},
+    {c:'🍝', name:'pâtes', tags:['italien']},
+    {c:'🍜', name:'ramen', tags:['japonais']},
+    {c:'🍲', name:'soupe', tags:['soupe']},
+    {c:'🍰', name:'gâteau', tags:['dessert']},
+    {c:'🧁', name:'cupcake', tags:['dessert']},
+    {c:'🍩', name:'donut', tags:['dessert']},
+    {c:'🍪', name:'cookie', tags:['dessert']},
+    {c:'☕', name:'café', tags:['boisson']},
+    {c:'🍵', name:'thé', tags:['boisson']},
+  ],
+
+  "Voyage & Transport": [
+    {c:'🚗', name:'voiture', tags:['transport']},
+    {c:'🚕', name:'taxi', tags:['transport']},
+    {c:'🚙', name:'suv', tags:['transport']},
+    {c:'🚌', name:'bus', tags:['transport']},
+    {c:'🚎', name:'trolleybus', tags:['transport']},
+    {c:'🏎️', name:'voiture course', tags:['course']},
+    {c:'🚓', name:'voiture police', tags:['police']},
+    {c:'🚑', name:'ambulance', tags:['urgence']},
+    {c:'🚒', name:'camion pompier', tags:['urgence']},
+    {c:'🚐', name:'van', tags:['transport']},
+    {c:'🚚', name:'camion', tags:['transport']},
+    {c:'🚛', name:'camion remorque', tags:['transport']},
+    {c:'🚜', name:'tracteur', tags:['ferme']},
+    {c:'🛴', name:'trottinette', tags:['sport']},
+    {c:'🚲', name:'vélo', tags:['transport']},
+    {c:'🛵', name:'scooter', tags:['transport']},
+    {c:'🏍️', name:'moto', tags:['transport']},
+    {c:'✈️', name:'avion', tags:['voyage']},
+    {c:'🛫', name:'décollage', tags:['voyage']},
+    {c:'🛬', name:'atterrissage', tags:['voyage']},
+    {c:'🚀', name:'fusée', tags:['espace']},
+    {c:'🛸', name:'ovnis', tags:['espace']},
+    {c:'🚁', name:'hélicoptère', tags:['transport']},
+    {c:'🚂', name:'train à vapeur', tags:['train']},
+    {c:'🚆', name:'train', tags:['train']},
+    {c:'🚊', name:'tram', tags:['transport']},
+    {c:'🚉', name:'gare', tags:['lieu']},
+    {c:'⛵', name:'voilier', tags:['bateau']},
+    {c:'🛶', name:'canoë', tags:['bateau']},
+    {c:'🚤', name:'bateau rapide', tags:['bateau']},
+    {c:'🛳️', name:'paquebot', tags:['bateau']},
+    {c:'🏝️', name:'île', tags:['vacances']},
+    {c:'🏖️', name:'plage', tags:['vacances']},
+    {c:'🏔️', name:'montagne', tags:['nature']},
+    {c:'🗺️', name:'carte', tags:['navigation']},
+    {c:'🧭', name:'boussole', tags:['navigation']},
+    {c:'🏨', name:'hôtel', tags:['logement']},
+    {c:'🏕️', name:'camping', tags:['vacances']},
+  ],
+
+  "Objets & Tech": [
+    {c:'⌚', name:'montre', tags:['objet']},
+    {c:'📱', name:'téléphone', tags:['tech']},
+    {c:'📲', name:'téléphone reçu', tags:['tech']},
+    {c:'💻', name:'ordinateur portable', tags:['tech']},
+    {c:'🖥️', name:'ordinateur', tags:['tech']},
+    {c:'🖨️', name:'imprimante', tags:['bureau']},
+    {c:'🕹️', name:'manette', tags:['jeu']},
+    {c:'🎧', name:'casque', tags:['musique']},
+    {c:'📷', name:'appareil photo', tags:['photo']},
+    {c:'📸', name:'photo prise', tags:['photo']},
+    {c:'📺', name:'télévision', tags:['media']},
+    {c:'📻', name:'radio', tags:['audio']},
+    {c:'🔌', name:'prise', tags:['électricité']},
+    {c:'💡', name:'ampoule', tags:['idée']},
+    {c:'🔒', name:'verrou', tags:['sécurité']},
+    {c:'🔑', name:'clé', tags:['clé']},
+    {c:'🧭', name:'boussole', tags:['navigation']},
+    {c:'📦', name:'colis', tags:['logistique']},
+    {c:'🧰', name:'boîte à outils', tags:['outil']},
+    {c:'🔧', name:'clé à molette', tags:['outil']},
+    {c:'🔨', name:'marteau', tags:['outil']},
+    {c:'🪛', name:'tournevis', tags:['outil']},
+    {c:'⚙️', name:'engrenage', tags:['config']},
+    {c:'🧯', name:'extincteur', tags:['sécurité']},
+    {c:'🔋', name:'batterie', tags:['énergie']},
+    {c:'📡', name:'antenne satellite', tags:['comm']},
+    {c:'🧾', name:'reçu', tags:['document']},
+    {c:'📁', name:'dossier', tags:['fichier']},
+    {c:'📎', name:'trombone', tags:['bureau']},
+    {c:'✂️', name:'ciseaux', tags:['outil']},
+    {c:'🖊️', name:'stylo', tags:['écrire']},
+    {c:'📝', name:'note', tags:['écrire']},
+    {c:'📚', name:'livres', tags:['lecture']},
+    {c:'📖', name:'livre ouvert', tags:['lecture']},
+    {c:'🛒', name:'chariot', tags:['achat']},
+    {c:'💳', name:'carte bancaire', tags:['paiement']},
+    {c:'🔭', name:'télescope', tags:['astronomie']},
+    {c:'🧿', name:'œil protecteur', tags:['amulette']},
+  ],
+
+  "Symboles & Signs": [
+    {c:'⚠️', name:'attention', tags:['alerte']},
+    {c:'❗', name:'exclamation', tags:['alerte']},
+    {c:'❓', name:'question', tags:['question']},
+    {c:'✅', name:'check', tags:['ok']},
+    {c:'❌', name:'croix', tags:['non']},
+    {c:'➕', name:'plus', tags:['math']},
+    {c:'➖', name:'moins', tags:['math']},
+    {c:'✖️', name:'multiplication', tags:['math']},
+    {c:'➗', name:'division', tags:['math']},
+    {c:'♻️', name:'recycler', tags:['eco']},
+    {c:'❤️', name:'coeur symbole', tags:['coeur']},
+    {c:'✨', name:'étincelle', tags:['cool']},
+    {c:'🔥', name:'feu', tags:['chaud']},
+    {c:'💥', name:'explosion', tags:['boom']},
+    {c:'🔔', name:'cloche', tags:['alerte']},
+    {c:'🔕', name:'son coupé', tags:['son']},
+    {c:'💤', name:'zZZ', tags:['dormir']},
+    {c:'♿', name:'accessible', tags:['handicap']},
+    {c:'🚮', name:'poubelle', tags:['propre']},
+    {c:'🚭', name:'interdit fumer', tags:['santé']},
+    {c:'🔞', name:'interdit moins 18', tags:['restrictions']},
+    {c:'🆗', name:'ok carré', tags:['ok']},
+    {c:'🆒', name:'cool', tags:['cool']},
+    {c:'🆕', name:'nouveau', tags:['nouveau']},
+    {c:'🛑', name:'stop panneau', tags:['stop']},
+    {c:'📛', name:'badge', tags:['id']},
+    {c:'⚜️', name:'fleur de lis', tags:['symbole']},
+    {c:'☮️', name:'paix', tags:['paix']},
+    {c:'✝️', name:'croix chrétienne', tags:['religion']},
+    {c:'☪️', name:'croissant étoile', tags:['religion']},
+    {c:'🔯', name:'étoile juive', tags:['religion']},
+    {c:'🕉️', name:'om', tags:['religion']},
+    {c:'✡️', name:'etoile david', tags:['religion']},
+    {c:'♈', name:'bélier', tags:['zodiaque']},
+    {c:'♉', name:'taureau', tags:['zodiaque']},
+    {c:'♊', name:'gémeaux', tags:['zodiaque']},
+    {c:'♋', name:'cancer', tags:['zodiaque']},
+  ],
+
+  "Nature & Plantes": [
+    {c:'🌱', name:'jeune pousse', tags:['plante']},
+    {c:'🌿', name:'branche', tags:['plante']},
+    {c:'☘️', name:'trèfle', tags:['plante','chance']},
+    {c:'🍀', name:'trèfle 4 feuilles', tags:['chance']},
+    {c:'🎍', name:'bambou', tags:['plante']},
+    {c:'🎋', name:'bambou festival', tags:['plante']},
+    {c:'🍃', name:'feuille qui vole', tags:['plante']},
+    {c:'🍂', name:'feuilles tombées', tags:['automne']},
+    {c:'🌷', name:'tulipe', tags:['fleur']},
+    {c:'🌹', name:'rose', tags:['fleur']},
+    {c:'🌺', name:'hibiscus', tags:['fleur']},
+    {c:'🌻', name:'tournesol', tags:['fleur']},
+    {c:'🌼', name:'fleur', tags:['fleur']},
+    {c:'🌸', name:'fleur cerisier', tags:['fleur']},
+    {c:'🏵️', name:'rosace', tags:['fleur']},
+    {c:'💐', name:'bouquet', tags:['fleur']},
+    {c:'🌾', name:'gerbe', tags:['plantation']},
+    {c:'🌵', name:'cactus', tags:['plante']},
+    {c:'🎄', name:'sapin noel', tags:['fête']},
+    {c:'🌳', name:'arbre', tags:['arbre']},
+    {c:'🌲', name:'sapin', tags:['arbre']},
+    {c:'🌴', name:'palmier', tags:['plage']},
+    {c:'🌱', name:'pousse', tags:['plante']},
+    {c:'🌾', name:'blé', tags:['plante']},
+    {c:'☀️', name:'soleil', tags:['météo']},
+    {c:'🌤️', name:'partiellement ensoleillé', tags:['météo']},
+    {c:'⛅', name:'nuage soleil', tags:['météo']},
+    {c:'🌧️', name:'pluie', tags:['météo']},
+    {c:'⛈️', name:'orage', tags:['météo']},
+    {c:'🌩️', name:'éclair', tags:['météo']},
+    {c:'🌨️', name:'neige', tags:['météo']},
+    {c:'❄️', name:'flocon', tags:['neige']},
+    {c:'🔥', name:'feu', tags:['chaud']},
+    {c:'💧', name:'goutte', tags:['eau']},
+    {c:'🌊', name:'vague', tags:['mer']},
+    {c:'🌫️', name:'brume', tags:['météo']},
+    {c:'🌪️', name:'tornade', tags:['météo']},
+  ]
+};
+
+/* ===========================
+   Etat & utilitaires UI
+   =========================== */
+
+const categoryMenu = document.getElementById('categoryMenu');
+const grid = document.getElementById('grid');
+const searchInput = document.getElementById('searchInput');
+const categoryTitle = document.getElementById('categoryTitle');
+const categorySubtitle = document.getElementById('categorySubtitle');
+const countEl = document.getElementById('count');
+const toast = document.getElementById('toast');
+const favViewBtn = document.getElementById('favViewBtn');
+
+let state = {
+  currentCategory: 'Visages & Sourires',
+  query: '',
+  showFavs: false,
+  favorites: new Set(JSON.parse(localStorage.getItem('emoji_favs')||'[]'))
+};
+
+function saveFavs(){ localStorage.setItem('emoji_favs', JSON.stringify(Array.from(state.favorites))) }
+
+function showToast(text='Copié !'){ clearTimeout(window._t); toast.innerText = text; toast.classList.add('show'); window._t = setTimeout(()=>toast.classList.remove('show'),1400); }
+
+/* recherche: nom, tags, caractère */
+function matches(item,q){
+  if(!q) return true;
+  q = q.toLowerCase().trim();
+  if(item.c.includes(q)) return true;
+  if(item.name && item.name.toLowerCase().includes(q)) return true;
+  if(item.tags && item.tags.some(t=>t.toLowerCase().includes(q))) return true;
+  return false;
+}
+
+/* flatten all emojis into array with category info */
+function allEmojis(){
+  const arr = [];
+  for(const [cat, list] of Object.entries(EMOJI_DATA)){
+    list.forEach(it => arr.push({...it, category:cat}));
+  }
+  return arr;
+}
+
+/* build menu */
+function buildMenu(){
+  categoryMenu.innerHTML = '';
+  const cats = Object.keys(EMOJI_DATA);
+  cats.forEach(cat=>{
+    const btn = document.createElement('button');
+    btn.innerText = (cat==='Favoris'?'⭐ ':'') + cat;
+    btn.dataset.cat = cat;
+    btn.addEventListener('click', ()=>{
+      state.currentCategory = cat; state.showFavs = (cat==='Favoris'); state.query=''; searchInput.value=''; render();
+    });
+    if(cat === state.currentCategory) btn.classList.add('active');
+    categoryMenu.appendChild(btn);
+  });
+}
+
+/* render list (either by category or search results or favorites) */
+function render(){
+  // update menu active
+  Array.from(categoryMenu.children).forEach(b=>b.classList.toggle('active', b.dataset.cat===state.currentCategory));
+
+  grid.innerHTML = '';
+  let items = [];
+  if(state.showFavs){
+    // favorites across categories
+    const favs = new Set(state.favorites);
+    items = allEmojis().filter(it => favs.has(it.c) && matches(it, state.query));
+    categoryTitle.innerText = '⭐ Favoris';
+    categorySubtitle.innerText = state.query ? `Résultats pour "${state.query}"` : 'Vos emojis favoris';
+  } else if(state.query && state.query.trim()!==''){
+    // search across all categories
+    items = allEmojis().filter(it => matches(it, state.query));
+    categoryTitle.innerText = '🔎 Résultats';
+    categorySubtitle.innerText = `Recherche globale : "${state.query}" — ${items.length} résultats`;
+  } else {
+    // show current category
+    const list = EMOJI_DATA[state.currentCategory] || [];
+    items = list.slice();
+    categoryTitle.innerText = state.currentCategory;
+    categorySubtitle.innerText = `${items.length} emojis`;
+  }
+
+  // render items
+  items.forEach(it=>{
+    const el = document.createElement('div');
+    el.className = 'card';
+    el.title = it.name || it.c; // accessible name on hover
+    // inner char only (name not shown)
+    el.innerHTML = `
+      <div aria-hidden="true">${it.c}</div>
+      <div class="visually-hidden" data-name>${it.name}</div>
+      <div class="star ${state.favorites.has(it.c)?'active':''}" data-emoji>${state.favorites.has(it.c)?'★':'☆'}</div>
+    `;
+    // copy on click (but ignore click on star)
+    el.addEventListener('click', async (e)=>{
+      if(e.target.closest('.star')) return;
+      try{
+        await navigator.clipboard.writeText(it.c);
+        showToast(`${it.c} copié`);
+      }catch(err){
+        // fallback
+        const ta = document.createElement('textarea'); ta.value = it.c; document.body.appendChild(ta); ta.select();
+        try{ document.execCommand('copy'); showToast(`${it.c} copié`); } catch(e){ showToast('Impossible de copier') }
+        ta.remove();
+      }
+    });
+    // star click
+    const star = el.querySelector('.star');
+    star.addEventListener('click', (ev)=>{
+      ev.stopPropagation();
+      const ch = it.c;
+      if(state.favorites.has(ch)){ state.favorites.delete(ch); star.classList.remove('active'); star.innerText='☆'; }
+      else { state.favorites.add(ch); star.classList.add('active'); star.innerText='★'; }
+      saveFavs();
+      // if viewing favorites, re-render to remove disappeared ones
+      if(state.showFavs) render();
+    });
+
+    grid.appendChild(el);
+  });
+
+  // count
+  countEl.innerText = items.length;
+}
+
+/* events */
+searchInput.addEventListener('input', (e)=>{
+  state.query = e.target.value;
+  state.showFavs = false;
+  render();
+  // update category buttons active
+  Array.from(categoryMenu.children).forEach(b=>b.classList.toggle('active', false));
+});
+
+favViewBtn.addEventListener('click', ()=>{
+  state.showFavs = !state.showFavs;
+  state.currentCategory = state.showFavs ? 'Favoris' : 'Visages & Sourires';
+  render();
+});
+
+window.addEventListener('keydown', e=>{
+  if(e.key === '/') { e.preventDefault(); searchInput.focus(); }
+});
+
+/* init */
+buildMenu();
+render();
+</script>
+</body>
+</html>
